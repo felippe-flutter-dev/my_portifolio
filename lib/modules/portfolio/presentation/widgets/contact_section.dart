@@ -17,7 +17,7 @@ class ContactSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '04 / VAMOS CONSTRUIR ALGO',
+          '05 / VAMOS CONSTRUIR ALGO',
           style: TextStyle(
             color: PortfolioTheme.accent,
             letterSpacing: 2,

@@ -24,7 +24,90 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final width in [320.0, 393.0, 768.0, 900.0, 1440.0]) {
+  testWidgets('Resize preserves the filter and does not recreate the Cubit', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(899, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var creations = 0;
+    late PortfolioCubit controller;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PortfolioTheme.dark,
+        home: PortfolioPresentation(
+          createController: () {
+            creations++;
+            return controller = PortfolioCubit(
+              GetProjects(LocalProjectRepository()),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Backend'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Backend'));
+    await tester.pumpAndSettle();
+    for (final width in [900.0, 1440.0, 393.0, 899.0]) {
+      tester.view.physicalSize = Size(width, 1000);
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(width >= 900 ? PortfolioExpanded : PortfolioCompact),
+        findsOneWidget,
+      );
+      expect(controller.state.category, 'Backend');
+      expect(find.byType(ProjectCard), findsOneWidget);
+      expect(find.text('PartyU'), findsOneWidget);
+      expect(creations, 1);
+      expect(controller.isClosed, isFalse);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(controller.isClosed, isTrue);
+  });
+
+  testWidgets(
+    'Local constraints select composition independently of platform and window',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      for (final platform in [
+        TargetPlatform.android,
+        TargetPlatform.iOS,
+        TargetPlatform.windows,
+      ]) {
+        for (final width in [393.0, 900.0]) {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: PortfolioTheme.dark.copyWith(platform: platform),
+              home: Center(
+                child: SizedBox(
+                  width: width,
+                  child: PortfolioPresentation(
+                    createController: () =>
+                        PortfolioCubit(GetProjects(LocalProjectRepository())),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byType(width >= 900 ? PortfolioExpanded : PortfolioCompact),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        }
+      }
+    },
+  );
+
+  for (final width in [320.0, 393.0, 768.0, 899.0, 900.0, 901.0, 1440.0]) {
     testWidgets('Responsive layout and navigation at $width', (tester) async {
       tester.view.physicalSize = Size(width, 900);
       tester.view.devicePixelRatio = 1;
@@ -41,9 +124,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.byType(
-          width >= 900 ? PortfolioExpanded : PortfolioCompact,
-        ),
+        find.byType(width >= 900 ? PortfolioExpanded : PortfolioCompact),
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);

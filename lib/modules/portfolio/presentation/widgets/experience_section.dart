@@ -8,7 +8,7 @@ class ExperienceSection extends StatelessWidget {
   Widget build(BuildContext context) => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      SectionHeading('03', 'Trajetória'),
+      SectionHeading('03', 'Minha trajetória'),
       _Experience(
         'DEZ 2025 — PRESENTE',
         'Founding Mobile Engineer',

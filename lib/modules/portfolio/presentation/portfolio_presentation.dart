@@ -15,7 +15,8 @@ class PortfolioPresentation extends StatelessWidget {
       builder: (context, state) {
         final select = context.read<PortfolioCubit>().selectCategory;
         return LayoutBuilder(
-          builder: (context, constraints) => constraints.maxWidth >= AppBreakpoints.expanded
+          builder: (context, constraints) =>
+              constraints.maxWidth >= AppBreakpoints.expanded
               ? PortfolioExpanded(
                   projects: state.visibleProjects,
                   category: state.category,

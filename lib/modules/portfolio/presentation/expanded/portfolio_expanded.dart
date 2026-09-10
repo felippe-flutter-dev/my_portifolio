@@ -5,8 +5,9 @@ import '../widgets/hero_content.dart';
 import '../widgets/project_card.dart';
 import '../widgets/project_filters.dart';
 import '../widgets/section_heading.dart';
-import '../widgets/about_section.dart';
 import '../widgets/experience_section.dart';
+import '../widgets/education_section.dart';
+import 'about_expanded.dart';
 import '../widgets/contact_section.dart';
 
 class PortfolioExpanded extends StatefulWidget {
@@ -20,8 +21,7 @@ class PortfolioExpanded extends StatefulWidget {
   final String category;
   final ValueChanged<String> onCategory;
   @override
-  State<PortfolioExpanded> createState() =>
-      _PortfolioExpandedState();
+  State<PortfolioExpanded> createState() => _PortfolioExpandedState();
 }
 
 class _PortfolioExpandedState extends State<PortfolioExpanded> {
@@ -97,7 +97,7 @@ class _PortfolioExpandedState extends State<PortfolioExpanded> {
                         ),
                       ),
                       const SizedBox(width: 48),
-                      const Expanded(flex: 4, child: IdentityArtwork()),
+                      const Expanded(flex: 4, child: _CreativeNote()),
                     ],
                   ),
                 ),
@@ -130,16 +130,12 @@ class _PortfolioExpandedState extends State<PortfolioExpanded> {
                 const SizedBox(height: 90),
                 const Divider(),
                 const SizedBox(height: 70),
-                Row(
-                  key: aboutKey,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Expanded(child: AboutSection()),
-                    const SizedBox(width: 80),
-                    const Expanded(child: ExperienceSection()),
-                  ],
-                ),
+                AboutExpanded(key: aboutKey),
                 const SizedBox(height: 80),
+                const ExperienceSection(),
+                const SizedBox(height: 40),
+                const EducationSection(),
+                const SizedBox(height: 48),
                 ContactSection(key: contactKey),
                 const PortfolioFooter(),
               ],
@@ -147,6 +143,48 @@ class _PortfolioExpandedState extends State<PortfolioExpanded> {
           ),
         ),
       ),
+    ),
+  );
+}
+
+class _CreativeNote extends StatelessWidget {
+  const _CreativeNote();
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(32),
+    decoration: BoxDecoration(
+      color: PortfolioTheme.surface,
+      border: Border.all(color: PortfolioTheme.border),
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.data_object, color: PortfolioTheme.accent, size: 48),
+        SizedBox(height: 48),
+        Text(
+          'DA IDEIA AO MUNDO',
+          style: TextStyle(
+            color: PortfolioTheme.accent,
+            fontSize: 11,
+            letterSpacing: 2,
+          ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          'Aplicações.\nMúsicas.\nUniversos.',
+          style: TextStyle(
+            fontSize: 34,
+            height: 1.3,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 24),
+        Text(
+          'Diferentes formas de fazer uma ideia existir.',
+          style: TextStyle(color: PortfolioTheme.muted),
+        ),
+      ],
     ),
   );
 }

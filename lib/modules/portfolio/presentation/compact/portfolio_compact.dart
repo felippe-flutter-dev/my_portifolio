@@ -5,8 +5,9 @@ import '../widgets/hero_content.dart';
 import '../widgets/project_card.dart';
 import '../widgets/project_filters.dart';
 import '../widgets/section_heading.dart';
-import '../widgets/about_section.dart';
 import '../widgets/experience_section.dart';
+import '../widgets/education_section.dart';
+import 'about_compact.dart';
 import '../widgets/contact_section.dart';
 
 class PortfolioCompact extends StatefulWidget {
@@ -20,12 +21,10 @@ class PortfolioCompact extends StatefulWidget {
   final String category;
   final ValueChanged<String> onCategory;
   @override
-  State<PortfolioCompact> createState() =>
-      _PortfolioCompactState();
+  State<PortfolioCompact> createState() => _PortfolioCompactState();
 }
 
-class _PortfolioCompactState
-    extends State<PortfolioCompact> {
+class _PortfolioCompactState extends State<PortfolioCompact> {
   final projectsKey = GlobalKey();
   final aboutKey = GlobalKey();
   final contactKey = GlobalKey();
@@ -84,8 +83,6 @@ class _PortfolioCompactState
               const Divider(height: 1),
               const SizedBox(height: 42),
               HeroContent(titleSize: 43, onProjects: () => go(0)),
-              const SizedBox(height: 38),
-              const IdentityArtwork(),
               const SizedBox(height: 60),
               SectionHeading('01', 'Projetos selecionados', key: projectsKey),
               ProjectFilters(
@@ -99,9 +96,11 @@ class _PortfolioCompactState
                 ),
               ),
               const SizedBox(height: 42),
-              AboutSection(key: aboutKey),
+              AboutCompact(key: aboutKey),
               const SizedBox(height: 54),
               const ExperienceSection(),
+              const SizedBox(height: 40),
+              const EducationSection(),
               const SizedBox(height: 30),
               ContactSection(key: contactKey),
               const PortfolioFooter(),

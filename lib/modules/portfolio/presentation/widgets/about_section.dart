@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/portfolio_theme.dart';
 import 'section_heading.dart';
+import 'external_link.dart';
 
 class AboutSection extends StatelessWidget {
   const AboutSection({super.key});
@@ -8,9 +9,9 @@ class AboutSection extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const SectionHeading('02', 'Além da interface'),
+      const SectionHeading('02', 'Sobre mim'),
       const Text(
-        'O cuidado que você vê na tela começa na arquitetura.',
+        'Curioso por natureza. Criador por vontade.',
         style: TextStyle(
           fontSize: 26,
           height: 1.3,
@@ -19,64 +20,15 @@ class AboutSection extends StatelessWidget {
       ),
       const SizedBox(height: 20),
       const Text(
-        'Atuo do desenho da solução à evolução de aplicações em produção. Minha especialidade é Flutter, com experiência em Kotlin, Android e Jetpack Compose. Gosto de construir sistemas que continuam funcionando quando a rede falha — e código que continua claro quando o produto cresce.',
+        'Sou Felippe: desenvolvedor, pai, compositor e alguém que gosta de entender como as coisas funcionam. Antes do código, vieram os brinquedos desmontados, a marcenaria com meu pai e a serralheria. Mudei de ferramentas, mas a vontade de construir ficou.\n\nHoje crio aplicações com Flutter e Android. Fora do editor, componho músicas, escrevo e invento mundos de fantasia. Gosto de dar forma às ideias — seja numa interface, numa história ou numa melodia.',
         style: TextStyle(color: PortfolioTheme.muted, height: 1.8),
       ),
-      const SizedBox(height: 24),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children:
-            [
-                  'Flutter & Dart',
-                  'Kotlin & Compose',
-                  'Clean Architecture',
-                  'BLoC / Cubit',
-                  'Offline-first',
-                  'TDD & CI/CD',
-                  'Mentoria técnica',
-                ]
-                .map(
-                  (s) => Chip(
-                    label: Text(s, style: const TextStyle(fontSize: 12)),
-                    side: const BorderSide(color: PortfolioTheme.border),
-                  ),
-                )
-                .toList(),
-      ),
-      const SizedBox(height: 28),
-      const Divider(),
-      const SizedBox(height: 20),
-      const Text(
-        'FORMAÇÃO',
-        style: TextStyle(
-          color: PortfolioTheme.accent,
-          fontSize: 11,
-          letterSpacing: 2,
-        ),
-      ),
-      const SizedBox(height: 12),
-      const Text(
-        'Engenharia da Computação · UFBRA',
-        style: TextStyle(fontWeight: FontWeight.w600),
-      ),
-      const Text(
-        '2025–2030 · Em andamento',
-        style: TextStyle(color: PortfolioTheme.muted, fontSize: 13),
-      ),
-      const SizedBox(height: 12),
-      const Text(
-        'Técnico em Informática · FAETEC',
-        style: TextStyle(fontWeight: FontWeight.w600),
-      ),
-      const Text(
-        '2019–2021',
-        style: TextStyle(color: PortfolioTheme.muted, fontSize: 13),
-      ),
-      const SizedBox(height: 20),
-      const Text(
-        'Português nativo · Inglês B1 · Espanhol B1',
-        style: TextStyle(color: PortfolioTheme.muted, fontSize: 12),
+      const SizedBox(height: 16),
+      TextButton.icon(
+        onPressed: () =>
+            openExternal(context, 'https://medium.com/@felippehouse'),
+        icon: const Icon(Icons.north_east, size: 16),
+        label: const Text('Meus textos no Medium'),
       ),
     ],
   );

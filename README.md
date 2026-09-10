@@ -1,26 +1,51 @@
-# Portfólio · Felippe Pinheiro
+# Felippe Pinheiro · Portfólio
 
-Aplicação Flutter para web e mobile, com visual escuro e acentos verde-lima.
+Portfólio profissional de **Felippe Pinheiro de Almeida**, desenvolvedor Flutter sênior. Reúne projetos pessoais, trajetória profissional e competências em desenvolvimento mobile, arquitetura de software e experiências digitais.
 
-## Executar
+Desenvolvido em Flutter para Web e dispositivos móveis, o projeto aplica a **Adaptive Composition Architecture (ACA)**, convenção definida por Felippe para compartilhar comportamento, compor diferenças visuais e isolar capacidades de plataforma.
 
-```sh
-flutter pub get
-flutter run -d chrome
-flutter run -d <device-id>
-flutter analyze
-flutter test
-flutter build web
-flutter build apk --debug
-```
+## Funcionalidades
+
+- Catálogo de projetos com filtros por Flutter, Web e Backend.
+- Detalhes técnicos dos projetos e acesso aos repositórios públicos.
+- Apresentação da trajetória profissional, formação e competências.
+- Seção pessoal com colagem de fotos, anotações, linha do tempo e textos no Medium.
+- Player em formato de fita cassete, com reprodução, pausa, troca de faixa e avanço; letras autorais e produção via Suno.
+- Animações de entrada que respeitam a preferência de movimento reduzido.
+- Navegação por seções e acesso aos canais de contato.
+- Composições compacta e expandida, selecionadas pelo espaço disponível.
+- Identidade visual escura com componentes compartilhados e acentos verde-lima.
+
+## Projetos em destaque
+
+| Projeto | Foco | Tecnologias |
+| --- | --- | --- |
+| [Volt Net](https://github.com/felippe-flutter-dev/volt_net) | Orquestração HTTP, cache híbrido e sincronização offline | Dart, Flutter, SQLite |
+| [LARA AI](https://github.com/felippe-flutter-dev/LARA_Ai_Chatbot) | Assistente com IA e personalidades adaptáveis | Flutter, Gemini, BLoC |
+| [MangaBR Hub](https://github.com/felippe-flutter-dev/mangabrhub) | Plataforma de leitura de mangás | React, TypeScript, Firebase |
+| [PartyU](https://github.com/felippe-flutter-dev/partyu_back) | Backend de eventos com microsserviços | Kotlin, Spring Boot, PostgreSQL |
+
+## Stack do portfólio
+
+| Tecnologia | Responsabilidade |
+| --- | --- |
+| Flutter / Dart | Interface e código compartilhado entre plataformas |
+| Flutter Modular | Composição de módulos, injeção de dependências e rotas |
+| BLoC / Cubit | Estado e interações da apresentação |
+| LayoutBuilder | Seleção de composição por constraints locais |
+| audioplayers | Reprodução de músicas na Web e no app |
+| url_launcher | Abertura de repositórios e canais de contato |
+| flutter_test / flutter_lints | Testes automatizados e análise estática |
 
 ## Arquitetura
 
-O projeto segue os princípios da **Arquitetura Flutter Modular Multiplataforma** documentada por Felippe: organização por feature, Clean Architecture, Flutter Modular e Cubit/BLoC. Domínio e estado são compartilhados; as composições visuais se separam conforme o espaço disponível.
+> Compartilhe comportamento. Componha diferenças. Isole capacidades.
 
-> Compartilhe comportamento. Separe representação. Separe somente aquilo que diverge.
+A organização é **feature-first**, com separação entre domínio, dados e apresentação. O módulo `portfolio` concentra suas dependências, seu catálogo e suas composições visuais. O diretório `core` reúne o tema e a política de breakpoints.
 
-### Estrutura da feature
+A [especificação da ACA](docs/architecture/aca.md) descreve os princípios da convenção. A estrutura abaixo apresenta sua aplicação neste projeto.
+
+### Organização do código
 
 ```text
 lib/
@@ -29,6 +54,7 @@ lib/
 │   ├── app_module.dart
 │   └── app_widget.dart
 ├── core/
+│   ├── adaptive/app_breakpoints.dart
 │   └── theme/portfolio_theme.dart
 └── modules/
     └── portfolio/
@@ -42,8 +68,8 @@ lib/
         └── presentation/
             ├── portfolio_presentation.dart
             ├── controllers/portfolio_cubit.dart
-            ├── web_presentation/portfolio_web_presentation.dart
-            ├── mobile_presentation/portfolio_mobile_presentation.dart
+            ├── expanded/portfolio_expanded.dart
+            ├── compact/portfolio_compact.dart
             └── widgets/
                 ├── hero_content.dart
                 ├── project_card.dart
@@ -57,7 +83,7 @@ lib/
 
 ### Dependências entre camadas
 
-As setas abaixo representam dependências de código, não a ordem das chamadas em execução. O contrato do repositório pertence ao domínio; a implementação concreta pertence a dados.
+O domínio define a entidade `Project`, o contrato `ProjectRepository` e o caso de uso `GetProjects`. A camada de dados implementa o contrato; a apresentação consome o domínio. O módulo conecta as dependências concretas.
 
 ```mermaid
 flowchart TB
@@ -74,9 +100,9 @@ flowchart TB
     class APP,MOD,PRES,DATA,THEME layer
 ```
 
-O domínio não importa Flutter, dados ou apresentação. O módulo é o ponto de composição que conhece as implementações e conecta as camadas. O catálogo local permite abrir o portfólio sem consultar uma API ou expor tokens do GitHub.
+As setas representam dependências de código. O domínio permanece independente de Flutter, widgets e implementações de infraestrutura.
 
-### Composição responsiva e estado compartilhado
+### Composição adaptativa
 
 ```mermaid
 flowchart TD
@@ -84,78 +110,88 @@ flowchart TD
     PROVIDER --> CUBIT["PortfolioCubit / PortfolioState"]
     CUBIT --> BUILDER["BlocBuilder · observa o estado"]
     BUILDER --> LAYOUT["PortfolioPresentation · LayoutBuilder"]
-    LAYOUT -->|"largura menor que 900 px lógicos"| MOBILE["PortfolioMobilePresentation"]
-    LAYOUT -->|"largura a partir de 900 px lógicos"| WEB["PortfolioWebPresentation"]
+    LAYOUT -->|"largura menor que 900 px lógicos"| MOBILE["PortfolioCompact"]
+    LAYOUT -->|"largura a partir de 900 px lógicos"| WEB["PortfolioExpanded"]
     MOBILE --> SHARED["Widgets compartilhados · hero, cards, filtros e seções"]
     WEB --> SHARED
     FILTER["ProjectFilters · seleção do visitante"] --> CALLBACK["onCategory"]
     CALLBACK -->|"selectCategory"| CUBIT
 ```
 
-As duas views recebem apenas `projects`, `category` e `onCategory`. Não acessam o repositório nem resolvem dependências. A composição ampla usa colunas e navegação por seções; a compacta usa organização vertical, `SafeArea` e navegação inferior. Estado puramente visual, como hover, rolagem e destino da navegação mobile, fica nos respectivos widgets.
+`PortfolioPresentation` integra o estado à seleção do layout. As composições recebem apenas projetos filtrados, categoria selecionada e callback de filtro, reutilizando os mesmos cards e seções.
 
-**Layout não é plataforma:** os nomes `web_presentation` e `mobile_presentation` representam as composições ampla e compacta neste projeto. Um navegador estreito usa a composição mobile; um tablet Android largo pode usar a composição web. Não existe seleção por `kIsWeb` ou `Platform.isAndroid`. O segundo `LayoutBuilder`, dentro da composição ampla, apenas calcula a largura dos cards.
+| Composição | Espaço disponível | Organização |
+| --- | --- | --- |
+| Compact | Menos de 900 px lógicos | Conteúdo vertical e navegação inferior |
+| Expanded | A partir de 900 px lógicos | Colunas, cards em duas colunas e navegação por seções |
 
-### Carregamento e interação
+O breakpoint está centralizado em `AppBreakpoints.expanded`. A seleção considera a largura disponível para a feature, independentemente do sistema operacional ou do tamanho físico do dispositivo.
 
-```mermaid
-sequenceDiagram
-    participant P as PortfolioPresentation / BlocProvider
-    participant C as PortfolioCubit
-    participant U as GetProjects
-    participant R as LocalProjectRepository
-    participant V as View ativa / ProjectFilters
-    P->>C: Cria via fábrica do módulo
-    C->>U: call()
-    U->>R: getProjects() pelo contrato ProjectRepository
-    R-->>U: List de Project
-    U-->>C: Catálogo local
-    C-->>P: Estado inicial, categoria Todos
-    P-->>V: projects, category, onCategory
-    V->>C: onCategory chama selectCategory
-    C->>C: Emite estado com nova categoria
-    C-->>P: BlocBuilder recebe o estado
-    P-->>V: visibleProjects filtrados
+### Decisões de implementação
+
+- **Estado compartilhado:** um único `PortfolioCubit` atende às duas composições. O `BlocProvider` gerencia seu ciclo de vida acima da seleção de layout, preservando o filtro ao redimensionar.
+- **Catálogo local:** os projetos são carregados de um repositório em memória, sem consulta à API do GitHub durante a navegação.
+- **Componentes por responsabilidade:** cards, filtros, apresentação pessoal e trajetória são compartilhados; cada composição define sua organização visual.
+- **Adaptação proporcional:** existem somente as duas composições utilizadas pelo produto.
+- **Integração de plataforma:** a abertura de links fica em um helper compartilhado sobre `url_launcher`, com tratamento de falhas.
+
+## Executar localmente
+
+Requer Flutter instalado, Dart compatível com `^3.11.4` e o ambiente configurado para a plataforma de destino.
+
+```sh
+flutter pub get
+flutter run -d chrome
 ```
 
-O catálogo é carregado uma vez na criação do Cubit. Filtrar altera o estado de apresentação sem consultar novamente o repositório. Como o `BlocProvider` envolve a escolha do layout, o filtro permanece ao cruzar o breakpoint; o estado local da composição substituída pode ser reiniciado.
+Para executar em um dispositivo ou emulador:
 
-### Aderência à arquitetura documentada
+```sh
+flutter devices
+flutter run -d <device-id>
+```
 
-| Princípio | Implementação atual |
-| --- | --- |
-| Organização feature-first | A funcionalidade está em `modules/portfolio`, com módulo próprio. |
-| Domínio independente | Entidade, contrato e caso de uso são Dart sem dependências de Flutter. |
-| Contrato em Domain; implementação em Data | `ProjectRepository` e `LocalProjectRepository` estão nas camadas correspondentes. |
-| Compartilhar regras e estado | Um `GetProjects`, um repositório e um `PortfolioCubit` atendem às duas composições. |
-| Separar somente a representação divergente | As views montam layouts diferentes e reutilizam os mesmos widgets de conteúdo. |
-| Dependências e rotas por feature | `portfolioModule` registra repositório, caso de uso e rota; `appModule` compõe o módulo. |
-| Core enxuto | Contém o tema global; widgets específicos continuam na feature. |
-| Separação Android/iOS apenas quando necessária | Não há versões duplicadas. A abertura de links usa `url_launcher` em um helper compartilhado. |
+## Qualidade e testes
 
-**Adaptações e pontos de evolução:**
+```sh
+flutter analyze
+flutter test
+```
 
-- **API do Modular:** o código usa `createModule`, `c.add`, `c.addSingleton` e `c.route`, da versão 7.1.0 instalada. O documento exemplifica classes com `binds` e `routes`; a responsabilidade arquitetural é equivalente, mas a sintaxe difere.
-- **Ciclo de vida do Cubit:** ele não é registrado como bind. O módulo fornece a fábrica, resolve `GetProjects` e deixa criação/descarte sob responsabilidade do `BlocProvider` da tela.
-- **Repositório síncrono:** `getProjects()` retorna `List<Project>`, adequado ao catálogo em memória. O exemplo documentado usa `Future<List<Project>>`. Adotar uma fonte remota exigiria adaptar o contrato, caso de uso e estado para carregamento e erro; não seria apenas trocar a classe concreta.
-- **Breakpoint:** a decisão está centralizada, mas `900` ainda é literal em `PortfolioPresentation`. Extrair esse valor para a estratégia de layout/design system é o ajuste pendente em relação à recomendação do documento. Ainda não há composição intermediária específica.
-- **Conteúdo editorial:** biografia, experiências e contatos estão nos widgets compartilhados. O repositório e o Cubit abrangem o catálogo de projetos e seus filtros; não todo o conteúdo do portfólio. Se esse conteúdo passar a ser dinâmico, deverá ganhar uma fonte de dados própria.
+A suíte verifica a inicialização com Flutter Modular, filtros, diálogos e layouts de 320 a 1440 px, incluindo os limites de 899, 900 e 901 px. Também verifica preservação do filtro ao redimensionar, criação e descarte do Cubit e seleção da composição por constraints locais.
 
-## Conteúdo e fontes
+Testes com temas Android, iOS e Windows verificam a independência da escolha de layout. A execução de APIs nativas e a experiência em dispositivos reais requerem validação nas respectivas plataformas.
 
-Curadoria em 06/09/2026, baseada no currículo PT-Felippe Pinheiro de Almeida.pdf e nos READMEs públicos:
+## Gerar builds
 
-- https://github.com/felippe-flutter-dev/volt_net
-- https://github.com/felippe-flutter-dev/LARA_Ai_Chatbot
-- https://github.com/felippe-flutter-dev/mangabrhub
-- https://github.com/felippe-flutter-dev/partyu_back
+### Web
 
-Os projetos EcoEnergiza não fazem parte do catálogo de projetos pessoais. A experiência atual como Founding Mobile Engineer na EcoEnergiza consta na trajetória profissional, desde dezembro de 2025. Não foram usadas métricas de cobertura conflitantes entre currículo e README. Formação, idiomas, cargo e demais experiências vêm do currículo. As artes dos cards são composições tipográficas, não capturas dos produtos.
+```sh
+flutter build web
+```
 
-## Interações e validação
+Saída: `build/web`.
 
-Filtros por tecnologia, detalhes dos projetos em diálogo, abertura de repositórios, e-mail e LinkedIn, navegação por âncoras e tratamento de falhas ao abrir links. Testes cobrem inicialização real com Modular e layouts de 320, 393, 768, 900 e 1440 px, filtros e diálogo. Testes de widget não substituem validação em dispositivos Android/iOS reais.
+Para testar o build, sirva essa pasta por HTTP. Na raiz do projeto, com Python instalado:
 
-Não houve publicação nem configuração de domínio. O PDF original não é distribuído junto ao site.
+```sh
+python -m http.server 8085 --bind 127.0.0.1 --directory build/web
+```
 
-Detalhes complementares informados por Felippe: SRM Asset com TED, assinatura via certificado digital e face scan; EyecareBI migrado de Next.js para Flutter e Oculli desenvolvido do zero. O link de Play Store enviado para ambos corresponde ao EyecareBI; não foi atribuído ao Oculli.
+Abra [http://127.0.0.1:8085](http://127.0.0.1:8085) e mantenha o terminal em execução. Abrir `build/web/index.html` diretamente por `file://` não é uma forma suportada de testar o aplicativo.
+
+### Android — desenvolvimento
+
+```sh
+flutter build apk --debug
+```
+
+Saída: `build/app/outputs/flutter-apk/app-debug.apk`.
+
+Para distribuição Android, configurar a assinatura de produção e gerar o artefato de release. Builds iOS requerem macOS e Xcode.
+
+## Autor e contato
+
+**Felippe Pinheiro de Almeida · Desenvolvedor Flutter Sênior**
+
+[GitHub](https://github.com/felippe-flutter-dev) · [LinkedIn](https://www.linkedin.com/in/felippepinheiro-dev-flutter) · [E-mail](mailto:felippehouse@gmail.com)
