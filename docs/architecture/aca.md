@@ -3,1525 +3,183 @@
 > **Share behavior. Compose differences. Isolate capabilities.**
 > Compartilhe comportamento. Componha diferenças. Isole capacidades.
 
-## 1. Objetivo
+Convenção criada por Felippe Pinheiro de Almeida para organizar interfaces adaptativas. Esta especificação distingue os princípios da ACA das escolhas de implementação do portfólio.
 
-A **Adaptive Composition Architecture (ACA)** é uma convenção arquitetural para aplicações Flutter multiplataforma baseada em:
+## 1. Escopo e independência de bibliotecas
 
-* Feature-First;
-* Clean Architecture;
-* Flutter Modular;
-* Cubit/BLoC;
-* Adaptive Layout;
-* composição em vez de alternância condicional;
-* isolamento de capacidades específicas de plataforma.
+A ACA organiza a relação entre comportamento compartilhado, composição visual e capacidades técnicas. Não é um framework, uma biblioteca de estado ou uma arquitetura completa de aplicação.
 
-A arquitetura parte de três princípios:
+Sua adoção não exige Cubit, BLoC, Riverpod, Provider, Flutter Modular, um roteador específico ou Clean Architecture. Essas escolhas podem complementar a convenção. Também não exige camadas de domínio e dados em funcionalidades que não precisam delas.
 
-> **Tamanho disponível determina composição visual.**
+Os exemplos e a implementação de referência usam Flutter. Os princípios podem ser adaptados a outros frameworks; isso não representa uma implementação universal nem validação empírica em outras stacks.
 
-> **Capacidade da plataforma determina implementação técnica.**
+## 2. Princípios e critério de separação
 
-> **Regras de negócio não devem conhecer nenhum dos dois.**
+1. **Compartilhar comportamento equivalente.** Regras, consultas, filtros e seleções da mesma funcionalidade não devem ser reimplementados por composição.
+2. **Compor diferenças reais.** O espaço disponível orienta a organização visual. `compact` e `expanded` descrevem arranjos, não sistemas operacionais.
+3. **Isolar capacidades.** Integrações técnicas variam conforme suporte, permissões e condições de execução, independentemente da largura.
+4. **Separar no menor ponto necessário.** Extrair uma seção é suficiente quando apenas ela muda de organização.
+5. **Definir propriedade e ciclo de vida do estado.** Estado que precisa sobreviver à troca de composição deve ter um proprietário estável.
 
-Web, Android e iOS **não são layouts**.
+| Mudança | Decisão inicial |
+| --- | --- |
+| Padding, cor, tamanho ou número de colunas | Manter o componente e parametrizar quando necessário |
+| Organização de uma seção | Extrair as composições daquela seção |
+| Relação entre lista, detalhe e navegação | Compor os arranjos necessários para a funcionalidade |
+| API, permissão ou recurso do ambiente | Isolar a integração quando houver uma fronteira útil |
+| Regra de negócio ou fluxo diferente | Modelar a diferença no comportamento correspondente |
 
-Da mesma forma, `compact`, `medium` e `expanded` **não são plataformas**.
+ACA não proíbe condicionais, estado local ou pequenos trechos de estrutura repetidos. Uma abstração cheia de flags pode custar mais do que duas composições simples. A presença de um `if` não caracteriza, por si só, violação da convenção.
 
-Esses conceitos devem permanecer independentes.
+## 3. Responsabilidades e fluxo
 
----
-
-# 2. Regra central
-
-Evitar construir widgets com múltiplas interfaces escondidas através de flags:
-
-```dart
-return Card(
-  padding: isWeb
-      ? const EdgeInsets.all(32)
-      : const EdgeInsets.all(16),
-  child: isWeb
-      ? Row(children: [...])
-      : Column(children: [...]),
-);
+```mermaid
+flowchart TD
+    STATE["Proprietário estável do estado"] --> INPUT["Dados e ações da funcionalidade"]
+    INPUT --> SELECT["Seleção por espaço disponível"]
+    SELECT --> COMPACT["Composição compacta"]
+    SELECT --> EXPANDED["Composição expandida"]
+    COMPACT --> SHARED["Componentes reutilizáveis"]
+    EXPANDED --> SHARED
+    COMPACT --> INTENT["Intenções do usuário"]
+    EXPANDED --> INTENT
+    INTENT --> STATE
+    STATE --> CAPABILITY["Contrato de capacidade, quando necessário"]
+    CAPABILITY --> IMPLEMENTATION["Implementação compatível com o ambiente"]
 ```
 
-À medida que a aplicação cresce, isso tende a evoluir para:
+O diagrama representa fluxo conceitual de dados e ações, não a obrigatoriedade de criar uma classe para cada caixa.
 
-```dart
-if (isWeb) {
-  ...
-} else if (isTablet) {
-  ...
-} else if (Platform.isIOS) {
-  ...
-}
-```
+O comportamento pode estar em um ViewModel, controller, notifier, store ou objeto com streams. As composições recebem os dados e ações relevantes. Um adaptador na entrada da funcionalidade conecta a biblioteca escolhida a esse contrato.
 
-ACA prefere extrair os elementos compartilhados e criar composições explicitamente válidas:
+Regras de negócio não precisam conhecer largura, widgets ou plugins. Estado de apresentação, como a seleção de um item, não precisa ser promovido a regra de domínio apenas porque é compartilhado.
+
+## 4. Organização possível
 
 ```text
-Shared Widgets
-      │
-      ▼
-┌─────────────┐
-│ Composition │
-├─────────────┤
-│ Compact     │
-│ Medium      │
-│ Expanded    │
-└─────────────┘
+catalog/
+  catalog_state.dart
+  catalog_actions.dart
+  presentation/
+    catalog_presentation.dart
+    compact/
+      catalog_compact.dart
+    expanded/
+      catalog_expanded.dart
+    widgets/
+      catalog_list.dart
+      catalog_details.dart
 ```
 
-A decisão ocorre uma vez no nível apropriado da Presentation.
+Esta árvore é ilustrativa. Se o projeto já concentra estado e ações em um ViewModel, preserve essa organização. Diretórios de domínio, dados, integrações ou módulos devem refletir responsabilidades reais. `medium` só existe se houver uma terceira composição necessária.
 
----
+Componentes exclusivos de uma funcionalidade permanecem nela. A promoção para um design system ou área compartilhada depende de reutilização real e de um contrato estável, não apenas de semelhança visual.
 
-# 3. Estrutura geral
+## 5. Seleção e política de breakpoints
 
-```text
-lib/
-│
-├── main.dart
-│
-├── app/
-│   ├── app_module.dart
-│   └── app_widget.dart
-│
-├── core/
-│   ├── adaptive/
-│   ├── design_system/
-│   ├── network/
-│   └── ...
-│
-└── modules/
-    ├── auth/
-    ├── home/
-    ├── energy/
-    ├── checkout/
-    └── profile/
+No Flutter, `LayoutBuilder` permite decidir pelas constraints locais. O tamanho da janela é apropriado quando a decisão pertence à janela inteira. Um painel estreito em uma janela larga pode continuar compacto.
+
+A política deve registrar:
+
+- o espaço medido, em pixels lógicos, e o ponto de medição;
+- quais arranjos existem e por que a estrutura precisa mudar;
+- o intervalo de cada composição, incluindo a igualdade no limite;
+- como conteúdo longo, texto ampliado, altura reduzida e interação por teclado serão verificados;
+- eventuais exceções por funcionalidade, com justificativa.
+
+Escolha o limiar observando quando o conteúdo deixa de caber de forma utilizável. Não use o nome do dispositivo como medida indireta. Centralize políticas compartilhadas; não force todas as funcionalidades a ter o mesmo limiar se suas necessidades forem diferentes.
+
+No portfólio, [AppBreakpoints](../../lib/core/adaptive/app_breakpoints.dart) define **900 pixels lógicos**: abaixo disso, compacto; a partir disso, expandido. O valor é uma escolha deste produto, não um padrão da ACA. A composição expandida organiza conteúdo em colunas e muda a navegação. Os testes atuais verificam o comportamento nesse limite; não comprovam que 900 seja o limiar ideal para todo conteúdo ou configuração de acessibilidade.
+
+## 6. Estado, identidade e ciclo de vida
+
+Compartilhar a classe de um controller não basta: criar uma instância em cada composição ainda pode perder estado e repetir consultas.
+
+O proprietário do estado que precisa persistir deve ficar fora da subárvore substituída. Defina quem cria, quem observa e quem descarta essa instância. Alterar constraints não deve disparar efeitos de negócio no construtor da composição ou no callback do `LayoutBuilder`.
+
+Estado efêmero pode continuar local: hover, expansão descartável ou animação, conforme o contrato de experiência. Seleção, rascunho, reprodução ou posição de leitura só precisam subir quando devem sobreviver à transição. Preservar dados também não preserva automaticamente foco, rolagem ou a identidade de todos os widgets; esses comportamentos exigem decisões e testes próprios.
+
+No portfólio, o filtro do catálogo permanece porque seu `BlocProvider` está acima da decisão de layout. O player e a animação da fita têm estado local e são descartados quando a composição é substituída. Se a experiência passar a exigir áudio contínuo no redimensionamento, o proprietário da reprodução precisará de um escopo estável.
+
+## 7. Capacidades e montagem das dependências
+
+Uma composição pode pedir uma exportação sem saber se a implementação abre um download ou um seletor de destino. Quando essa separação for útil, o contrato expressa a necessidade do consumidor; a montagem da aplicação fornece a implementação adequada.
+
+Isso pode ser feito por construtores, fábricas ou um contêiner existente. Não é necessário acrescentar uma biblioteca de injeção de dependências. Um plugin que já abstrai os destinos pode ser suficiente, sem uma camada que apenas repita seus métodos.
+
+Suporte não equivale a disponibilidade: a operação pode exigir permissão, ser cancelada, ficar indisponível ou falhar depois da verificação inicial. Modele esses resultados e suas alternativas. Não presuma que a ausência de uma capacidade garante a existência de outra.
+
+Contratos de integração pertencem à camada adequada ao consumidor; nem todo contrato precisa estar no domínio. Bibliotecas incompatíveis com um destino podem exigir imports condicionais ou outro mecanismo de seleção em compilação. Uma condição em tempo de execução não corrige necessariamente incompatibilidade de compilação.
+
+```mermaid
+flowchart LR
+    ACTION["Ação da funcionalidade"] --> CONTRACT["Contrato necessário ao consumidor"]
+    ROOT["Montagem da aplicação"] --> ADAPTER["Implementação compatível"]
+    ADAPTER -->|"atende"| CONTRACT
+    ADAPTER --> API["Plugin ou API do ambiente"]
 ```
 
-A aplicação é organizada prioritariamente por **feature**.
+## 8. Navegação e deep links
 
-Cada feature é responsável por seu domínio, dados e apresentação.
+A ACA não substitui o roteador. Em um catálogo com detalhe, uma rota como `/catalog/itemId` pode representar a seleção canônica. Uma fronteira de navegação interpreta o identificador, resolve o item e fornece estado à funcionalidade. As composições emitem intenções como selecionar e voltar; o adaptador coordena essas intenções com o router.
 
----
+Com pouco espaço, a seleção pode ocupar a área da lista. Com mais espaço, pode ocupar um painel lateral. Redimensionar deve alterar a composição sem acrescentar entradas ao histórico ou repetir o carregamento apenas por essa mudança.
 
-# 4. Estrutura padrão de uma feature
+Escolha uma fonte de verdade para a seleção navegável. Se houver sincronização entre rota e estado, defina sua direção e evite ciclos. Verifique abertura direta, retorno, identificador inválido, carregamento e erro. Esse cenário é orientação de adoção; o portfólio não implementa um catálogo de detalhes com esse esquema de URLs.
 
-```text
-modules/
-└── portfolio/
-    │
-    ├── portfolio_module.dart
-    │
-    ├── data/
-    │   ├── datasources/
-    │   ├── models/
-    │   └── repositories/
-    │
-    ├── domain/
-    │   ├── entities/
-    │   ├── repositories/
-    │   └── usecases/
-    │
-    └── presentation/
-        ├── portfolio_presentation.dart
-        │
-        ├── controllers/
-        │
-        ├── compact/
-        │
-        ├── medium/
-        │
-        ├── expanded/
-        │
-        └── widgets/
-```
+## 9. Testes e critérios de aceitação
 
-Diretórios não são obrigatórios.
-
-Se uma feature possui apenas `compact` e `expanded`, não criar `medium` vazio.
-
-Se não existem datasources, não criar `datasources/` por formalidade.
-
-> A estrutura cresce conforme a complexidade real.
-
----
-
-# 5. Fluxo arquitetural
-
-A estrutura conceitual é:
+Teste as composições diretamente com dados controlados e ações observáveis. Depois teste a fronteira adaptativa e a continuidade do comportamento.
 
 ```text
-               DOMAIN
-                  │
-                  │
-                STATE
-                  │
-                  ▼
-          PRESENTATION
-                  │
-          Adaptive Decision
-           ┌──────┼──────┐
-           │      │      │
-        Compact Medium Expanded
-           │      │      │
-           └──────┼──────┘
-                  │
-            Shared Widgets
+Dado um catálogo compacto com itens conhecidos
+Quando seleciono um item
+Então o detalhe corresponde ao item selecionado
+Quando amplio o espaço e atravesso o breakpoint
+Então a composição expandida apresenta a mesma seleção
+E o proprietário do estado permanece o mesmo
+E nenhuma nova consulta ocorre apenas pelo redimensionamento
 ```
 
-Em uma dimensão diferente existem capacidades:
+Esse roteiro é ilustrativo, não uma declaração de cobertura existente. Para cada produto, inclua os limites imediatamente abaixo, no ponto e acima do breakpoint, constraints locais, conteúdo longo, texto ampliado e os estados vazio, carregando e erro. Também avalie foco, teclado e histórico quando forem relevantes.
 
-```text
-Domain Contract
-      │
-      ▼
-Implementation
- ┌────┼─────┐
- │    │     │
-Web Android iOS
-```
-
-As duas dimensões não devem ser confundidas.
-
----
-
-# 6. Domain
-
-`domain/` representa regras e conceitos da feature.
-
-```text
-domain/
-├── entities/
-├── repositories/
-└── usecases/
-```
-
-O Domain não deve depender de:
-
-* Flutter;
-* Widgets;
-* Layout;
-* tamanho de tela;
-* Web;
-* Android;
-* iOS;
-* SQLite;
-* IndexedDB;
-* APIs específicas.
-
-Exemplo:
-
-```dart
-class Project {
-  final String id;
-  final String name;
-
-  const Project({
-    required this.id,
-    required this.name,
-  });
-}
-```
-
-Contrato:
-
-```dart
-abstract interface class ProjectRepository {
-  Future<List<Project>> getProjects();
-}
-```
-
-Use case:
-
-```dart
-class GetProjects {
-  final ProjectRepository repository;
-
-  GetProjects(this.repository);
-
-  Future<List<Project>> call() {
-    return repository.getProjects();
-  }
-}
-```
-
-O Domain sabe que projetos precisam ser obtidos.
-
-Ele não sabe **como**.
-
----
-
-# 7. Data
-
-`data/` implementa os contratos definidos pelo Domain.
-
-```text
-data/
-├── datasources/
-├── models/
-└── repositories/
-```
-
-Exemplo:
-
-```dart
-class ProjectRepositoryImpl implements ProjectRepository {
-  final ProjectDatasource datasource;
-
-  ProjectRepositoryImpl(this.datasource);
-
-  @override
-  Future<List<Project>> getProjects() {
-    return datasource.getProjects();
-  }
-}
-```
-
-A implementação concreta pode mudar sem alterar Domain ou Presentation.
-
----
-
-# 8. Presentation
-
-`presentation/` é responsável pela interface e interação da feature.
-
-```text
-presentation/
-├── home_presentation.dart
-├── controllers/
-├── compact/
-├── medium/
-├── expanded/
-└── widgets/
-```
-
-O arquivo principal é o **boundary adaptativo** da feature.
-
-Exemplo:
-
-```dart
-class HomePresentation extends StatelessWidget {
-  const HomePresentation({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-
-        if (width < AppBreakpoints.medium) {
-          return const HomeCompact();
-        }
-
-        if (width < AppBreakpoints.expanded) {
-          return const HomeMedium();
-        }
-
-        return const HomeExpanded();
-      },
-    );
-  }
-}
-```
-
-Os breakpoints devem ser centralizados:
-
-```dart
-abstract final class AppBreakpoints {
-  static const double medium = 600;
-  static const double expanded = 1024;
-}
-```
-
-Os valores são definidos pelo projeto/design system e não devem ser espalhados arbitrariamente pelos widgets.
-
----
-
-# 9. Compact, Medium e Expanded
-
-Esses nomes representam **espaço disponível**, não dispositivos.
-
-```text
-compact/
-medium/
-expanded/
-```
-
-Portanto:
-
-```text
-iPhone              → provavelmente Compact
-Android Phone       → provavelmente Compact
-Web 390px           → Compact
-
-Tablet              → Medium ou Expanded
-Web 800px           → Medium
-
-Desktop Web         → Expanded
-Tablet Landscape    → possivelmente Expanded
-Desktop App         → Expanded
-```
-
-Nunca assumir:
-
-```text
-Web = Expanded
-Android = Compact
-iOS = Compact
-```
-
-O layout deve responder às constraints disponíveis.
-
----
-
-# 10. Composição sobre alternância
-
-Considere três elementos compartilhados:
-
-```dart
-const EnergyValue();
-const EnergyChart();
-const EnergyStatus();
-```
-
-No Compact:
-
-```dart
-class EnergyCompact extends StatelessWidget {
-  const EnergyCompact({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        EnergyValue(),
-        EnergyChart(),
-        EnergyStatus(),
-      ],
-    );
-  }
-}
-```
-
-No Expanded:
-
-```dart
-class EnergyExpanded extends StatelessWidget {
-  const EnergyExpanded({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: EnergyValue()),
-        Expanded(child: EnergyChart()),
-        Expanded(child: EnergyStatus()),
-      ],
-    );
-  }
-}
-```
-
-Os componentes continuam compartilhados:
-
-```text
-presentation/
-├── compact/
-│   └── energy_compact.dart
-├── expanded/
-│   └── energy_expanded.dart
-└── widgets/
-    ├── energy_value.dart
-    ├── energy_chart.dart
-    └── energy_status.dart
-```
-
-Evitar:
-
-```dart
-class EnergyCard extends StatelessWidget {
-  final bool isWeb;
-  final bool isTablet;
-  final bool compact;
-
-  // várias interfaces escondidas aqui
-}
-```
-
----
-
-# 11. Quando NÃO criar outra Presentation
-
-ACA não determina que qualquer diferença visual gere outro arquivo.
-
-Uma diferença trivial:
-
-```dart
-padding: compact ? 16 : 24,
-```
-
-pode ser perfeitamente aceitável.
-
-Da mesma forma:
-
-```dart
-final columns = width > 1000 ? 3 : 2;
-```
-
-pode ser adequado para um Grid naturalmente responsivo.
-
-A separação deve ocorrer quando existe **divergência estrutural significativa**.
-
-Exemplo:
-
-```text
-Compact
-
-[A]
-[B]
-[C]
-
-
-Expanded
-
-[A] [B]
-    [C]
-```
-
-Aqui existem composições diferentes.
-
-Criar duas presentations torna a intenção explícita.
-
----
-
-# 12. Princípio da menor divergência
-
-Separar somente aquilo que realmente diverge.
-
-Se muda:
-
-### Uma propriedade
-
-Manter o mesmo widget.
-
-### A organização dos elementos
-
-Criar composição Compact/Medium/Expanded.
-
-### Um componente
-
-Criar implementações diferentes somente daquele componente.
-
-### Uma tela inteira
-
-Criar presentations completas diferentes.
-
-### Uma capacidade técnica
-
-Criar implementações específicas de plataforma atrás de um contrato compartilhado.
-
----
-
-# 13. Plataforma é uma dimensão diferente
-
-Separação por plataforma deve ocorrer somente quando houver uma **divergência funcional ou técnica real**.
-
-Exemplos:
-
-* SQLite não disponível/suportado da mesma forma no Web;
-* filesystem diferente;
-* câmera;
-* biometria;
-* notificações;
-* Apple Sign In;
-* APIs nativas;
-* armazenamento seguro;
-* APIs exclusivas do navegador;
-* integração específica Android/iOS.
-
-Não criar:
-
-```text
-android_presentation/
-ios_presentation/
-web_presentation/
-```
-
-apenas porque os tamanhos das telas diferem.
-
-Plataforma não determina layout.
-
----
-
-# 14. Exemplo de divergência funcional
-
-Imagine persistência local.
-
-O Domain define:
-
-```dart
-abstract interface class LocalStorage {
-  Future<void> save(String key, String value);
-
-  Future<String?> read(String key);
-}
-```
-
-A aplicação pode possuir:
-
-```text
-core/
-└── storage/
-    ├── local_storage.dart
-    ├── native/
-    │   └── sqlite_local_storage.dart
-    └── web/
-        └── web_local_storage.dart
-```
-
-Native:
-
-```dart
-class SqliteLocalStorage implements LocalStorage {
-  @override
-  Future<void> save(String key, String value) async {
-    // SQLite implementation
-  }
-
-  @override
-  Future<String?> read(String key) async {
-    // SQLite implementation
-  }
-}
-```
-
-Web:
-
-```dart
-class WebLocalStorage implements LocalStorage {
-  @override
-  Future<void> save(String key, String value) async {
-    // Web-compatible implementation
-  }
-
-  @override
-  Future<String?> read(String key) async {
-    // Web-compatible implementation
-  }
-}
-```
-
-O restante da aplicação conhece apenas:
-
-```dart
-LocalStorage
-```
-
-Nunca:
-
-```dart
-SqliteLocalStorage
-WebLocalStorage
-```
-
----
-
-# 15. Flutter Modular resolve a implementação
-
-O módulo pode selecionar a implementação adequada.
-
-Conceitualmente:
-
-```dart
-class StorageModule extends Module {
-  @override
-  void binds(Injector i) {
-    i.add<LocalStorage>(
-      () => createPlatformStorage(),
-    );
-  }
-}
-```
-
-A decisão fica próxima da composição/infraestrutura.
-
-O Domain continua indiferente.
-
-```text
-Feature
-   │
-   ▼
-LocalStorage
-   ▲
-   │
- DI/Module
- ┌─┴─────────────┐
- │               │
-SQLite       Web Storage
-Native           Web
-```
-
----
-
-# 16. Capabilities são preferíveis a perguntas sobre plataforma
-
-Quando possível, a aplicação deve perguntar:
-
-> “Essa capacidade está disponível?”
-
-em vez de:
-
-> “Estou executando no iOS?”
-
-Exemplo:
-
-```dart
-abstract interface class AuthCapabilities {
-  bool get supportsAppleSignIn;
-  bool get supportsGoogleSignIn;
-}
-```
-
-A Presentation pode então decidir:
-
-```dart
-if (capabilities.supportsAppleSignIn) {
-  return const AppleSignInButton();
-}
-
-return const GoogleSignInButton();
-```
-
-Isso é preferível a espalhar:
-
-```dart
-Platform.isIOS
-Platform.isAndroid
-kIsWeb
-```
-
-pela árvore de widgets.
-
-As verificações concretas de plataforma devem ficar isoladas em boundaries apropriados.
-
----
-
-# 17. Divergência visual e funcional podem coexistir
-
-Considere Login.
-
-Compact:
-
-```text
-┌──────────────────┐
-│ Logo             │
-│ Email            │
-│ Senha            │
-│ Social Login     │
-└──────────────────┘
-```
-
-Expanded:
-
-```text
-┌────────────────────────────────┐
-│ Branding      │ Email          │
-│               │ Senha          │
-│               │ Social Login   │
-└────────────────────────────────┘
-```
-
-Isso é divergência de **composição**:
-
-```text
-presentation/
-├── compact/
-│   └── login_compact.dart
-└── expanded/
-    └── login_expanded.dart
-```
-
-Agora suponha que o botão disponível dependa de capability.
-
-Isso é outra responsabilidade:
-
-```text
-presentation/
-└── widgets/
-    └── social_login_button.dart
-```
-
-O widget pode consumir uma política:
-
-```dart
-class SocialLoginButton extends StatelessWidget {
-  final AuthCapabilities capabilities;
-
-  const SocialLoginButton({
-    required this.capabilities,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (capabilities.supportsAppleSignIn) {
-      return const AppleSignInButton();
-    }
-
-    return const GoogleSignInButton();
-  }
-}
-```
-
-Assim:
-
-```text
-Layout                Capability
-
-Compact ───────┐
-               ├── SocialLoginButton ── Apple
-Expanded ──────┘                    └── Google
-```
-
-São decisões independentes.
-
----
-
-# 18. Estado é compartilhado
-
-Layouts diferentes não justificam estados diferentes.
+Capacidades pedem testes de indisponibilidade, cancelamento e falha, além do caminho de sucesso. Testar a composição isolada não substitui a integração com o ambiente real.
 
-Evitar:
+## 10. Implementação de referência e limites da evidência
 
-```text
-HomeCompactCubit
-HomeMediumCubit
-HomeExpandedCubit
-```
-
-Preferir:
-
-```text
-                 HomeCubit
-                    │
-                 HomeState
-                    │
-          HomePresentation
-             ┌──────┼──────┐
-             │      │      │
-         Compact  Medium Expanded
-```
-
-Exemplo:
-
-```dart
-class HomeState {
-  final User user;
-  final bool hasMeter;
-  final bool hasPlant;
-  final List<Reward> rewards;
-
-  const HomeState({
-    required this.user,
-    required this.hasMeter,
-    required this.hasPlant,
-    required this.rewards,
-  });
-}
-```
-
-As presentations recebem o mesmo estado e apenas o representam de maneiras diferentes.
-
----
-
-# 19. Presentation específica deve ser simples
-
-Preferencialmente, layouts específicos recebem dados e callbacks.
-
-Exemplo:
-
-```dart
-class HomeCompact extends StatelessWidget {
-  final HomeState state;
-  final VoidCallback onPlantTap;
-
-  const HomeCompact({
-    required this.state,
-    required this.onPlantTap,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // composição
-  }
-}
-```
-
-A Presentation principal pode integrar estado e layout:
-
-```dart
-class HomePresentation extends StatelessWidget {
-  const HomePresentation({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<HomeCubit, HomeState>(
-      builder: (_, state) {
-        return LayoutBuilder(
-          builder: (_, constraints) {
-            if (constraints.maxWidth < AppBreakpoints.medium) {
-              return HomeCompact(
-                state: state,
-                onPlantTap: () {},
-              );
-            }
-
-            return HomeExpanded(
-              state: state,
-              onPlantTap: () {},
-            );
-          },
-        );
-      },
-    );
-  }
-}
-```
-
-Isso mantém `HomeCompact` e `HomeExpanded` focados em composição.
-
----
-
-# 20. Flutter Modular
-
-Cada feature pode possuir seu próprio módulo:
-
-```text
-home/
-├── home_module.dart
-├── data/
-├── domain/
-└── presentation/
-```
-
-Exemplo:
-
-```dart
-class HomeModule extends Module {
-  @override
-  void binds(Injector i) {
-    i.add<HomeRepository>(HomeRepositoryImpl.new);
-    i.add(GetHomeData.new);
-    i.add(HomeCubit.new);
-  }
-
-  @override
-  void routes(RouteManager r) {
-    r.child(
-      '/',
-      child: (_) => const HomePresentation(),
-    );
-  }
-}
-```
-
-O `AppModule` compõe as features:
-
-```dart
-class AppModule extends Module {
-  @override
-  void routes(RouteManager r) {
-    r.module('/auth', module: AuthModule());
-    r.module('/home', module: HomeModule());
-    r.module('/energy', module: EnergyModule());
-    r.module('/profile', module: ProfileModule());
-  }
-}
-```
-
----
-
-# 21. Core
-
-`core/` contém recursos genuinamente globais.
-
-Exemplo:
-
-```text
-core/
-├── adaptive/
-│   ├── app_breakpoints.dart
-│   └── layout_size.dart
-│
-├── design_system/
-│   ├── buttons/
-│   ├── cards/
-│   ├── inputs/
-│   └── typography/
-│
-├── network/
-├── storage/
-└── theme/
-```
-
-Não transformar `core` em depósito.
-
-Evitar:
-
-```text
-core/
-├── utils/
-├── helpers/
-├── managers/
-├── miscellaneous/
-└── common/
-```
-
-Código nasce dentro da feature.
-
-Somente deve subir para `core` quando existir reutilização global concreta.
-
----
-
-# 22. LayoutSize
-
-A classificação de espaço pode ser centralizada:
-
-```dart
-enum LayoutSize {
-  compact,
-  medium,
-  expanded,
-}
-```
-
-Resolver:
-
-```dart
-LayoutSize resolveLayoutSize(double width) {
-  if (width < AppBreakpoints.medium) {
-    return LayoutSize.compact;
-  }
-
-  if (width < AppBreakpoints.expanded) {
-    return LayoutSize.medium;
-  }
-
-  return LayoutSize.expanded;
-}
-```
-
-Então uma Presentation pode utilizar:
-
-```dart
-final layout = resolveLayoutSize(
-  constraints.maxWidth,
-);
-
-return switch (layout) {
-  LayoutSize.compact => const HomeCompact(),
-  LayoutSize.medium => const HomeMedium(),
-  LayoutSize.expanded => const HomeExpanded(),
-};
-```
-
-Isso evita replicar regras de breakpoint pela aplicação.
-
----
-
-# 23. Não criar layouts inexistentes
-
-Nem toda feature precisa das três representações.
-
-Exemplo:
-
-```text
-checkout/
-└── presentation/
-    ├── checkout_presentation.dart
-    ├── compact/
-    ├── expanded/
-    └── widgets/
-```
-
-Se Medium funciona exatamente como Compact:
-
-```dart
-return switch (layout) {
-  LayoutSize.compact ||
-  LayoutSize.medium => const CheckoutCompact(),
-
-  LayoutSize.expanded => const CheckoutExpanded(),
-};
-```
-
-Não criar:
-
-```text
-CheckoutMedium
-```
-
-somente para satisfazer a arquitetura.
-
----
-
-# 24. Design System versus Feature Widgets
-
-Componentes globais:
-
-```text
-core/design_system/
-├── buttons/
-├── inputs/
-├── cards/
-└── typography/
-```
-
-Exemplo:
-
-```text
-EcoButton
-EcoTextField
-EcoCard
-EcoDialog
-```
-
-Componentes de domínio:
-
-```text
-modules/energy/presentation/widgets/
-├── energy_chart.dart
-├── consumption_card.dart
-└── generation_indicator.dart
-```
-
-Um componente não deve ir para `core` apenas porque aparece duas vezes dentro da mesma feature.
-
----
-
-# 25. Testabilidade
-
-ACA transforma variações implícitas em composições explicitamente testáveis.
-
-Em vez de testar:
-
-```dart
-Widget(
-  isWeb: true,
-  isTablet: false,
-  isIOS: false,
-  compact: false,
-);
-```
-
-testar diretamente:
-
-```text
-HomeCompact
-HomeMedium
-HomeExpanded
-```
-
-Exemplo:
-
-```dart
-testWidgets(
-  'HomeCompact renders cards vertically',
-  (tester) async {
-    await tester.pumpWidget(
-      const HomeCompact(...),
-    );
-
-    // assertions
-  },
-);
-```
-
-E separadamente:
-
-```dart
-testWidgets(
-  'HomeExpanded renders dashboard grid',
-  (tester) async {
-    await tester.pumpWidget(
-      const HomeExpanded(...),
-    );
-
-    // assertions
-  },
-);
-```
-
-Capabilities também podem ser simuladas:
+- [Código-fonte Flutter](https://github.com/felippe-flutter-dev/my_portifolio).
+- [Portfólio publicado](https://felippe-flutter-dev.github.io/).
+- [Repositório de publicação, apenas build web](https://github.com/felippe-flutter-dev/felippe-flutter-dev.github.io).
 
-```dart
-final capabilities = FakeAuthCapabilities(
-  supportsAppleSignIn: true,
-);
-```
-
-Sem depender da plataforma real do teste.
-
----
-
-# 26. Localização de bugs
-
-A estrutura deve reduzir o espaço de busca durante manutenção.
-
-Bug:
-
-> “Dashboard quebrado somente em telas grandes.”
-
-Primeiro destino:
-
-```text
-home/
-└── presentation/
-    └── expanded/
-```
-
-Bug:
-
-> “Persistência funciona no Android, mas não no navegador.”
-
-Primeiro destino:
-
-```text
-storage/
-└── web/
-```
-
-Bug:
-
-> “Cálculo de economia está incorreto em todas as plataformas.”
-
-Primeiro destino:
-
-```text
-energy/
-└── domain/
-```
-
-A árvore do projeto deve ajudar a indicar **qual responsabilidade provavelmente falhou**.
-
----
-
-# 27. Anti-patterns
-
-## Platform branching espalhado
-
-Evitar:
-
-```dart
-if (kIsWeb) ...
-if (Platform.isAndroid) ...
-if (Platform.isIOS) ...
-```
-
-em dezenas de widgets.
-
----
-
-## Device naming
-
-Evitar:
-
-```text
-phone/
-tablet/
-desktop/
-```
-
-quando a diferença é apenas espaço disponível.
-
-Preferir:
-
-```text
-compact/
-medium/
-expanded/
-```
-
----
-
-## Duplicação de lógica
-
-Evitar:
-
-```text
-CompactHomeCubit
-ExpandedHomeCubit
-```
-
-quando ambos representam o mesmo comportamento.
-
----
-
-## Widget universal
-
-Evitar:
-
-```dart
-UniversalCard(
-  isWeb: true,
-  isMobile: false,
-  isTablet: false,
-  horizontal: true,
-  compact: false,
-  showSidebar: true,
-);
-```
-
-Esse padrão frequentemente representa várias composições escondidas dentro de uma única classe.
-
----
-
-## Abstração prematura
-
-Não criar:
-
-```text
-BaseAdaptiveAbstractWidgetFactory
-```
-
-quando um `LayoutBuilder` e duas compositions resolvem o problema.
-
----
-
-# 28. Árvore de decisão
-
-Antes de implementar uma diferença, perguntar:
-
-```text
-O comportamento de negócio mudou?
-        │
-       SIM
-        │
-        └── Domain / Use Case
-       
-       NÃO
-        │
-        ▼
-A diferença depende do espaço disponível?
-        │
-       SIM
-        │
-        └── Compact / Medium / Expanded
-       
-       NÃO
-        │
-        ▼
-A diferença depende de capacidade da plataforma?
-        │
-       SIM
-        │
-        └── Contract + Platform Implementation
-       
-       NÃO
-        │
-        ▼
-É apenas uma pequena diferença visual?
-        │
-       SIM
-        │
-        └── Mesmo Widget
-```
-
-Essa decisão deve ocorrer antes de criar novos diretórios ou classes.
-
----
-
-# 29. Exemplo final
-
-Uma aplicação completa pode evoluir para:
-
-```text
-lib/
-├── main.dart
-│
-├── app/
-│   ├── app_module.dart
-│   └── app_widget.dart
-│
-├── core/
-│   ├── adaptive/
-│   │   ├── app_breakpoints.dart
-│   │   └── layout_size.dart
-│   │
-│   ├── design_system/
-│   ├── network/
-│   │
-│   └── storage/
-│       ├── local_storage.dart
-│       ├── native/
-│       │   └── sqlite_local_storage.dart
-│       └── web/
-│           └── web_local_storage.dart
-│
-└── modules/
-    ├── auth/
-    │   ├── auth_module.dart
-    │   ├── data/
-    │   ├── domain/
-    │   └── presentation/
-    │       ├── auth_presentation.dart
-    │       ├── controllers/
-    │       ├── compact/
-    │       ├── expanded/
-    │       └── widgets/
-    │
-    ├── home/
-    │   ├── home_module.dart
-    │   ├── data/
-    │   ├── domain/
-    │   └── presentation/
-    │       ├── home_presentation.dart
-    │       ├── controllers/
-    │       ├── compact/
-    │       ├── medium/
-    │       ├── expanded/
-    │       └── widgets/
-    │
-    └── energy/
-        ├── energy_module.dart
-        ├── data/
-        ├── domain/
-        └── presentation/
-            ├── energy_presentation.dart
-            ├── controllers/
-            ├── compact/
-            ├── expanded/
-            └── widgets/
-```
-
----
-
-# 30. Regras para agentes de IA
-
-Ao gerar ou modificar código neste projeto:
-
-1. Identifique primeiro a feature responsável.
-
-2. Preserve a organização Feature-First.
-
-3. Não coloque regra de negócio em Widgets.
-
-4. Não diferencie layout com base em Web, Android ou iOS.
-
-5. Use espaço disponível para selecionar Compact, Medium ou Expanded.
-
-6. Não crie todas as variantes se a feature não precisar delas.
-
-7. Extraia elementos compartilhados antes de duplicar apresentações.
-
-8. Prefira composição sobre flags condicionais.
-
-9. Separe no menor nível onde a divergência ocorre.
-
-10. Não duplique Cubits/BLoCs por layout.
+| Princípio | Implementação verificável neste projeto |
+| --- | --- |
+| Seleção por espaço local | [PortfolioPresentation](../../lib/modules/portfolio/presentation/portfolio_presentation.dart), com `LayoutBuilder` |
+| Composições distintas | [PortfolioCompact](../../lib/modules/portfolio/presentation/compact/portfolio_compact.dart) e [PortfolioExpanded](../../lib/modules/portfolio/presentation/expanded/portfolio_expanded.dart) |
+| Estado do catálogo acima da troca | `BlocProvider` em `PortfolioPresentation` |
+| Política explícita | [AppBreakpoints](../../lib/core/adaptive/app_breakpoints.dart) |
+| Regressões de adaptação | [portfolio_test.dart](../../test/portfolio_test.dart) |
 
-11. Não duplique Domain por plataforma.
+A suíte verifica preservação do filtro Backend e uma única criação do Cubit ao redimensionar, seu descarte ao remover a apresentação, escolha por constraints locais independentemente do tema de plataforma e larguras incluindo 899, 900 e 901. Esses testes demonstram comportamentos delimitados desta implementação.
 
-12. Quando existir divergência técnica de plataforma, defina primeiro um contrato compartilhado.
+Cubit, Flutter Modular e separação de domínio/dados são escolhas do portfólio. Integrações como áudio e abertura de links utilizam plugins; não há obrigação de inventar adapters próprios para afirmar adoção da ACA.
 
-13. Mantenha implementações Web/Android/iOS atrás desse contrato.
+Este é um caso de aplicação com evidências automatizadas, não prova de superioridade sobre outras convenções. Ainda não há medição comparativa de produtividade, custo de manutenção, performance ou aplicação por múltiplas equipes.
 
-14. Prefira consultar capabilities a consultar diretamente o nome da plataforma.
+## 11. Benefícios esperados, custos e adoção
 
-15. Centralize breakpoints.
+Os benefícios esperados são localizar alterações de composição, reduzir duplicação de comportamento e tornar as diferenças revisáveis. Dependem da disciplina de implementação e devem ser avaliados no contexto do produto.
 
-16. Não espalhe `kIsWeb`, `Platform.isIOS` ou `Platform.isAndroid` pela UI.
+Os custos incluem mais arquivos, risco de divergência entre experiências e necessidade de testar transições. Compartilhamento excessivo também produz componentes difíceis de entender. Separar arquivos não oferece ganho automático de performance.
 
-17. Não mover código para `core` sem reutilização global concreta.
+Comece por uma funcionalidade com divergência estrutural real. Declare o que deve permanecer ao redimensionar, extraia somente os arranjos necessários e verifique os fluxos. Mantenha uma solução simples quando espaçamento, constraints ou um grid já resolvem o problema.
 
-18. Não criar abstrações preventivamente.
+ACA complementa práticas de composição e separação de responsabilidades; não reivindica a invenção desses fundamentos. Seu compromisso é tornar explícito o acordo de organização da equipe.
 
-19. Respeite a estrutura existente antes de adicionar novas camadas.
-
-20. A estrutura deve tornar evidente onde procurar um bug.
-
----
-
-# 31. Princípios da ACA
-
-## I — Share Behavior
-
-> Se o comportamento é o mesmo, compartilhe Domain, estado e regras.
-
-## II — Compose Differences
-
-> Se a organização visual diverge significativamente, componha apresentações distintas a partir de componentes compartilhados.
-
-## III — Size Before Platform
-
-> Layout deve responder ao espaço disponível, não ao nome da plataforma.
-
-## IV — Isolate Capabilities
-
-> Diferenças técnicas de plataforma devem existir atrás de contratos ou capabilities.
-
-## V — Minimum Divergence
-
-> Separe somente o menor elemento responsável pela diferença.
-
-## VI — Explicit Valid Compositions
-
-> Prefira poucas composições explicitamente válidas a um único Widget capaz de assumir dezenas de combinações através de flags.
-
-## VII — Local First
-
-> Código começa na feature e somente se torna global quando houver justificativa real.
-
-## VIII — Architecture Must Aid Debugging
-
-> A estrutura do projeto deve reduzir o espaço de busca de um defeito.
-
----
-
-# 32. Definição resumida
-
-**Adaptive Composition Architecture (ACA)** é uma arquitetura/convenção para Flutter multiplataforma na qual:
-
-* features são módulos independentes;
-* Domain e estado são compartilhados;
-* layouts são selecionados pelo espaço disponível;
-* diferenças estruturais são implementadas através de composição;
-* diferenças técnicas de plataforma são isoladas atrás de contratos;
-* widgets compartilhados permanecem independentes da composição;
-* e condicionais de plataforma/layout são mantidas fora dos componentes sempre que possível.
-
-Em forma reduzida:
-
-```text
-Feature
-  │
-  ├── Data
-  │
-  ├── Domain
-  │
-  └── Presentation
-         │
-         ├── Controller
-         │
-         ├── Adaptive Composition
-         │      ├── Compact
-         │      ├── Medium
-         │      └── Expanded
-         │
-         └── Shared Widgets
-
-Platform divergence
-         │
-         └── Contract
-               ├── Native implementation
-               └── Web implementation
-```
+## 12. Referências
 
-A regra de ouro é:
+- [Interfaces adaptativas no Flutter](https://docs.flutter.dev/ui/adaptive-responsive/general).
+- [LayoutBuilder](https://api.flutter.dev/flutter/widgets/LayoutBuilder-class.html).
+- [Guia de arquitetura do Flutter](https://docs.flutter.dev/app-architecture/guide).
+- [Imports e exports condicionais no Dart](https://dart.dev/tools/pub/create-packages#conditionally-importing-and-exporting-library-files).
 
-> **Compartilhe comportamento. Componha diferenças. Isole capacidades.**
+**Compartilhe comportamento. Componha diferenças. Isole capacidades. E separe apenas o que realmente precisa ser separado.**

@@ -5,6 +5,19 @@ class LocalProjectRepository implements ProjectRepository {
   @override
   List<Project> getProjects() => const [
     Project(
+      name: 'ACA',
+      category: 'Arquitetura',
+      description:
+          'Comportamento compartilhado. Interfaces com espaço para mudar.',
+      tags: ['Arquitetura de UI', 'Adaptive Design', 'Flutter'],
+      repository: 'my_portifolio',
+      highlight: 'CONVENÇÃO AUTORAL',
+      details:
+          'Adaptive Composition Architecture: convenção autoral para compartilhar comportamento, compor diferenças visuais e isolar capacidades de plataforma. Independente de bibliotecas de estado, injeção de dependências e navegação. Documentada em artigo no Medium e aplicada neste portfólio, com testes de preservação do filtro ao redimensionar e seleção de layout por constraints locais.',
+      articleUrl:
+          'https://medium.com/@felippehouse/aca-uma-conven%C3%A7%C3%A3o-para-interfaces-adaptativas-sem-amarrar-sua-stack-2c62be88a7dc',
+    ),
+    Project(
       name: 'Volt Net',
       category: 'Flutter',
       description: 'A rede pode falhar. A experiência não precisa.',

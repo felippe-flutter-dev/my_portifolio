@@ -55,7 +55,7 @@ class ContactSection extends StatelessWidget {
             OutlinedButton(
               onPressed: () => openExternal(
                 context,
-                'https://www.linkedin.com/in/felippepinheiro-dev-flutter',
+                'https://www.linkedin.com/in/felippe-pinheiro-dev-flutter/',
               ),
               child: const Text('LinkedIn ↗'),
             ),

@@ -27,6 +27,7 @@ class PortfolioExpanded extends StatefulWidget {
 class _PortfolioExpandedState extends State<PortfolioExpanded> {
   final projectsKey = GlobalKey();
   final aboutKey = GlobalKey();
+  final experienceKey = GlobalKey();
   final contactKey = GlobalKey();
   void go(GlobalKey key) => Scrollable.ensureVisible(
     key.currentContext!,
@@ -66,19 +67,32 @@ class _PortfolioExpandedState extends State<PortfolioExpanded> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => go(projectsKey),
-                        child: const Text('Projetos'),
-                      ),
-                      TextButton(
-                        onPressed: () => go(aboutKey),
-                        child: const Text('Sobre mim'),
-                      ),
-                      const SizedBox(width: 20),
-                      OutlinedButton(
-                        onPressed: () => go(contactKey),
-                        child: const Text('Vamos conversar ↗'),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            TextButton(
+                              onPressed: () => go(projectsKey),
+                              child: const Text('Projetos'),
+                            ),
+                            TextButton(
+                              onPressed: () => go(aboutKey),
+                              child: const Text('Sobre mim'),
+                            ),
+                            TextButton(
+                              onPressed: () => go(experienceKey),
+                              child: const Text('Minha trajetória'),
+                            ),
+                            OutlinedButton(
+                              onPressed: () => go(contactKey),
+                              child: const Text('Vamos conversar ↗'),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -132,7 +146,7 @@ class _PortfolioExpandedState extends State<PortfolioExpanded> {
                 const SizedBox(height: 70),
                 AboutExpanded(key: aboutKey),
                 const SizedBox(height: 80),
-                const ExperienceSection(),
+                ExperienceSection(key: experienceKey),
                 const SizedBox(height: 40),
                 const EducationSection(),
                 const SizedBox(height: 48),

@@ -16,6 +16,7 @@ class _ProjectCardState extends State<ProjectCard> {
   Widget build(BuildContext context) {
     final p = widget.project;
     final color = switch (p.repository) {
+      'my_portifolio' => PortfolioTheme.accent,
       'volt_net' => PortfolioTheme.accent,
       'LARA_Ai_Chatbot' => const Color(0xFFC5B3FA),
       'mangabrhub' => const Color(0xFFF0B18B),
@@ -67,6 +68,7 @@ class _ProjectCardState extends State<ProjectCard> {
                     Center(
                       child: Text(
                         switch (p.repository) {
+                          'my_portifolio' => 'ACA',
                           'volt_net' => 'ϟ volt_net',
                           'LARA_Ai_Chatbot' => 'lara*',
                           'mangabrhub' => 'MANGA / BR',
@@ -85,6 +87,7 @@ class _ProjectCardState extends State<ProjectCard> {
                       right: 22,
                       child: Icon(
                         switch (p.repository) {
+                          'my_portifolio' => Icons.account_tree_outlined,
                           'volt_net' => Icons.bolt,
                           'LARA_Ai_Chatbot' => Icons.auto_awesome,
                           'mangabrhub' => Icons.auto_stories_outlined,
@@ -172,6 +175,12 @@ class _ProjectCardState extends State<ProjectCard> {
           onPressed: () => Navigator.pop(ctx),
           child: const Text('Fechar'),
         ),
+        if (p.articleUrl != null)
+          OutlinedButton.icon(
+            onPressed: () => openExternal(ctx, p.articleUrl!),
+            icon: const Icon(Icons.article_outlined, size: 18),
+            label: const Text('Ler artigo'),
+          ),
         FilledButton.icon(
           onPressed: () => openExternal(
             ctx,

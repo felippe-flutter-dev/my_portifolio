@@ -7,7 +7,9 @@ class Project {
     required this.repository,
     required this.highlight,
     required this.details,
+    this.articleUrl,
   });
   final String name, category, description, repository, highlight, details;
   final List<String> tags;
+  final String? articleUrl;
 }

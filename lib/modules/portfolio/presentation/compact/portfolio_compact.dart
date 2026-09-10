@@ -27,11 +27,12 @@ class PortfolioCompact extends StatefulWidget {
 class _PortfolioCompactState extends State<PortfolioCompact> {
   final projectsKey = GlobalKey();
   final aboutKey = GlobalKey();
+  final experienceKey = GlobalKey();
   final contactKey = GlobalKey();
   int destination = 0;
   void go(int index) {
     setState(() => destination = index);
-    final key = [projectsKey, aboutKey, contactKey][index];
+    final key = [projectsKey, aboutKey, experienceKey, contactKey][index];
     Scrollable.ensureVisible(
       key.currentContext!,
       duration: MediaQuery.disableAnimationsOf(context)
@@ -51,6 +52,10 @@ class _PortfolioCompactState extends State<PortfolioCompact> {
           label: 'Projetos',
         ),
         NavigationDestination(icon: Icon(Icons.person_outline), label: 'Sobre'),
+        NavigationDestination(
+          icon: Icon(Icons.work_outline),
+          label: 'Trajetória',
+        ),
         NavigationDestination(
           icon: Icon(Icons.chat_bubble_outline),
           label: 'Contato',
@@ -98,7 +103,7 @@ class _PortfolioCompactState extends State<PortfolioCompact> {
               const SizedBox(height: 42),
               AboutCompact(key: aboutKey),
               const SizedBox(height: 54),
-              const ExperienceSection(),
+              ExperienceSection(key: experienceKey),
               const SizedBox(height: 40),
               const EducationSection(),
               const SizedBox(height: 30),

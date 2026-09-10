@@ -14,7 +14,7 @@ class ProjectFilters extends StatelessWidget {
     child: Wrap(
       spacing: 10,
       runSpacing: 8,
-      children: ['Todos', 'Flutter', 'Web', 'Backend']
+      children: ['Todos', 'Flutter', 'Web', 'Backend', 'Arquitetura']
           .map(
             (category) => ChoiceChip(
               label: Text(category),
